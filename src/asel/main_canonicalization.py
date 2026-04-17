@@ -5,11 +5,11 @@ import torch
 import datetime
 import argparse
 
-from prepare_data_loader import prepare_data_loader
-from train_utils import compute_param, Logger, CanonicalizationTrainer
-from asel.EquivarLayer_affine import EquivarLayer_affine_resnet32
-from EquivarLayer_RS import EquivarLayer_RS_resnet32
-from EquivarLayer_scale import EquivarLayer_scale_resnet32
+from .prepare_data_loader import prepare_data_loader
+from .train_utils import compute_param, Logger, CanonicalizationTrainer
+from .EquivarLayer_affine import EquivarLayer_affine_resnet32
+from .EquivarLayer_RS import EquivarLayer_RS_resnet32
+from .EquivarLayer_scale import EquivarLayer_scale_resnet32
 
 
 parser = argparse.ArgumentParser(description='net')
