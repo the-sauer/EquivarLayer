@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asel"
+version = "1.0.0"
+authors = [
+    { name = "Hendrik Sauer", email="hendrik-sauer@mailbox.org" },
+    { name = "Yikang Li" },
+    { name = "Yeqing Qiu" },
+    { name = "Yuxuan Chen" },
+    { name = "Zhouchen Lin" }
+]
+description = "Affine Steerable Equivariant Layer for Canonicalization of Neural Networks"
+readme = "README.md"
+requires-python = ">=3.10.13"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy >= 1.25, < 2",
+    "kornia >= 0.7, < 1",
+    "torch >= 2.4, < 3",
+    "torchvision >= 0.19, < 1",
+]
+
+[project.optional-dependencies]
+rbf = ["treverhines-rbf"]
+
+[project.urls]
+Homepage = "https://github.com/the-sauer/EquivarLayer"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+asel = ["data/kernels/*.pth"]

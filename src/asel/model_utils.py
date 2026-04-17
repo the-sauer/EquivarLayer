@@ -1,9 +1,14 @@
+from importlib import resources
+
 import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-from rbf.basis import get_rbf  # If you have trouble installing rbf, you can comment out this line and load precomputed kernels from local files.
-
+try:
+    from rbf.basis import get_rbf  # If you have trouble installing rbf, you can comment out this line and load precomputed kernels from local files.
+    rbf_available = True
+except ImportError:
+    rbf_available = False
 
 def normalize(inv):
     batch = inv.shape[0]
@@ -14,18 +19,19 @@ def normalize(inv):
 
 
 class Diff(nn.Module):
-    def __init__(self, ord=2):
+    def __init__(self, ord=2, use_rbf=True):
         super(Diff, self).__init__()
         self.ord = ord
-        # By default, generate Gaussian derivative kernels using rbf.
-        kernel1 = self.make_gauss(1, 7).cuda().reshape(2, 1, 1, 7, 7)
-        kernel2 = self.make_gauss(2, 7).cuda().reshape(3, 1, 1, 7, 7)
-        '''
-        If you have trouble installing rbf, comment out the above two lines,
-        and use the following two lines to load precomputed kernels from local files:
-        kernel1 = torch.load("./kernel1.pt", weights_only=True).cuda().reshape(2, 1, 1, 7, 7)
-        kernel2 = torch.load("./kernel2.pt", weights_only=True).cuda().reshape(3, 1, 1, 7, 7)
-        '''
+        if use_rbf and rbf_available:
+            # By default, generate Gaussian derivative kernels using rbf.
+            kernel1 = self.make_gauss(1, 7).cuda().reshape(2, 1, 1, 7, 7)
+            kernel2 = self.make_gauss(2, 7).cuda().reshape(3, 1, 1, 7, 7)
+        else:
+            # If rbf is not avaibable or not desired load precomputed kernels.
+            with resources.files("asel").joinpath("data/kernels/kernel1.pt").open("rb") as f:
+                kernel1 = torch.load(f, weights_only=True).cuda().reshape(2, 1, 1, 7, 7)
+            with resources.files("asel").joinpath("data/kernels/kernel2.pt").open("rb") as f:
+                kernel2 = torch.load(f, weights_only=True).cuda().reshape(3, 1, 1, 7, 7)
         conv_weights = torch.cat([-kernel1[1], kernel1[0], kernel2[2], kernel2[0]], dim=0)
         self.conv_weights = nn.Parameter(conv_weights.unsqueeze(1), requires_grad=False)
     
@@ -36,6 +42,7 @@ class Diff(nn.Module):
         return coord.reshape(kernel_size ** 2, 2)
 
     def make_gauss(self, order, kernel_size):
+        assert rbf_available
         diff = []
         coord = self.make_coord(kernel_size)
         gauss = get_rbf('ga')
