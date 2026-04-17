@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model_utils import _weights_init, normalize, Diff, LambdaLayer
+from .model_utils import _weights_init, normalize, Diff, LambdaLayer
 
 
 # Computing invariants of the rotation-scale group

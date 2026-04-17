@@ -4,8 +4,8 @@ import numpy
 import torch
 import datetime
 import argparse
-from prepare_data_loader import prepare_data_loader
-from train_utils import compute_param, get_prediction_network, Logger, PredictionTrainer
+from .prepare_data_loader import prepare_data_loader
+from .train_utils import compute_param, get_prediction_network, Logger, PredictionTrainer
 
 
 parser = argparse.ArgumentParser(description='net')

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "asel"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
     { name = "Hendrik Sauer", email="hendrik-sauer@mailbox.org" },
     { name = "Yikang Li" },
