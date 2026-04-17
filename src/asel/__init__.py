@@ -5,7 +5,8 @@ See submodules
 - `affine`,
 - `roto_scale`, and
 - `scale`
-for the affine equivariant network implementation for the respective group.
+
+for the equivariant network implementation for the respective group.
 """
 
 from . import EquivarLayer_affine as affine
