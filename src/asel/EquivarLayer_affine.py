@@ -33,6 +33,7 @@ def compute_affine_invariants(u):
 class EquivarLayer(nn.Module):
     def __init__(self, in_channels, out_channels, hid_channels=None, type=["0", "0"], stride=1):
         super(EquivarLayer, self).__init__()
+        self.in_channels = in_channels
         num_inv = 6 * in_channels - 3
         if hid_channels == None:
             hid_channels = max(in_channels, out_channels)
@@ -44,6 +45,11 @@ class EquivarLayer(nn.Module):
             self.eq_matrix_layer = EqMatrixLayer(in_channels, out_channels)
 
     def forward(self, x):
+        if x.size(1) > self.in_channels:
+            u = x[:, self.in_channels:, ...]
+            x = x[:, :self.in_channels, ...]
+        else:
+            u = torch.zeros(x.shape[0], 0, x.shape[2], x.shape[3], device=x.device)
         inv = compute_affine_invariants(x)
         inv = self.conv1(inv)
         inv = F.relu(inv)
@@ -52,11 +58,11 @@ class EquivarLayer(nn.Module):
         inv = self.conv2(inv)
 
         if self.type[1] == "0":
-            return inv
+            return torch.cat((inv, u), dim=1)
         elif self.type[1] == "c":
             b, _, h, w = inv.shape
             inv_matrix = inv.view(b, 2, 2, h, w)
-            eq_matrix = self.eq_matrix_layer(x).view(b, 2, 2, h, w)
+            eq_matrix = self.eq_matrix_layer(torch.cat((x, u), dim=1)).view(b, 2, 2, h, w)
             out_matrix = torch.einsum('bijkl,bjnkl->binkl', eq_matrix, inv_matrix)
             return out_matrix
 
@@ -65,6 +71,7 @@ class EquivarLayer(nn.Module):
 class EqMatrixLayer(nn.Module):
     def __init__(self, in_channels, out_channels=4):
         super(EqMatrixLayer, self).__init__()
+        self.in_channels = in_channels
         self.conv1 = torch.nn.Conv2d(in_channels, out_channels // 4, kernel_size=1, bias=False)
 
     def forward(self, x):
@@ -72,9 +79,13 @@ class EqMatrixLayer(nn.Module):
         ux, uy, uxx, uyy, uxy = diff(x)
 
         relative_inv = uxx * uyy - uxy * uxy
-        Su = relative_inv.abs().view(x.shape[0], -1).max(dim=-1)[0]
-        Su[Su==0] = 1
-        Su = Su.view(x.shape[0], 1, 1, 1) ** 0.5
+        if x.size(1) == self.in_channels:
+            Su = relative_inv.abs().view(x.shape[0], -1).max(dim=-1)[0]
+            Su[Su==0] = 1
+            Su = Su.view(x.shape[0], 1, 1, 1) ** 0.5
+        else:
+            Su = x[:, -1, ...]
+            x = x[:, :-1, ...]
 
         eq_matrix11 = self.conv1((uxx * uy - uxy * ux) / Su)
         eq_matrix12 = self.conv1(ux)
