@@ -1,3 +1,5 @@
+from typing import Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -44,13 +46,14 @@ class EquivarLayer(nn.Module):
         if self.type[1] == "c":
             self.eq_matrix_layer = EqMatrixLayer(in_channels, out_channels)
 
-    def forward(self, x):
-        if x.size(1) > self.in_channels:
-            u = x[:, self.in_channels:, ...]
-            x = x[:, :self.in_channels, ...]
+    def forward(self, x: Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]):
+        if isinstance(x, tuple):
+            x, s = x
         else:
-            u = torch.zeros(x.shape[0], 0, x.shape[2], x.shape[3], device=x.device)
+            s = None
+
         inv = compute_affine_invariants(x)
+
         inv = self.conv1(inv)
         inv = F.relu(inv)
         if self.stride == 2:
@@ -58,13 +61,19 @@ class EquivarLayer(nn.Module):
         inv = self.conv2(inv)
 
         if self.type[1] == "0":
-            return torch.cat((inv, u), dim=1)
+            if s is not None:
+                return inv, s
+            else:
+                return inv
         elif self.type[1] == "c":
             b, _, h, w = inv.shape
             inv_matrix = inv.view(b, 2, 2, h, w)
-            eq_matrix = self.eq_matrix_layer(torch.cat((x, u), dim=1)).view(b, 2, 2, h, w)
+            eq_matrix = self.eq_matrix_layer((x, s)).view(b, 2, 2, h, w)
             out_matrix = torch.einsum('bijkl,bjnkl->binkl', eq_matrix, inv_matrix)
-            return out_matrix
+            if s is not None:
+                return out_matrix, s
+            else:
+                return out_matrix
 
 
 # Computing an equivariant matrix for the affine group
@@ -74,24 +83,26 @@ class EqMatrixLayer(nn.Module):
         self.in_channels = in_channels
         self.conv1 = torch.nn.Conv2d(in_channels, out_channels // 4, kernel_size=1, bias=False)
 
-    def forward(self, x):
+    def forward(self, x: Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]):
+        if isinstance(x, tuple):
+            x, Su = x
+        else:
+            Su = None
+
         diff = Diff()
         ux, uy, uxx, uyy, uxy = diff(x)
 
         relative_inv = uxx * uyy - uxy * uxy
-        if x.size(1) == self.in_channels:
+        if Su is None:
             Su = relative_inv.abs().view(x.shape[0], -1).max(dim=-1)[0]
             Su[Su==0] = 1
             Su = Su.view(x.shape[0], 1, 1, 1) ** 0.5
-        else:
-            Su = x[:, -1, ...]
-            x = x[:, :-1, ...]
 
         eq_matrix11 = self.conv1((uxx * uy - uxy * ux) / Su)
         eq_matrix12 = self.conv1(ux)
         eq_matrix21 = self.conv1((uxy * uy - uyy * ux) / Su)
         eq_matrix22 = self.conv1(uy)
-        
+
         return torch.cat(
                 (eq_matrix11, eq_matrix12, eq_matrix21, eq_matrix22),
                 dim=1)
@@ -118,12 +129,19 @@ class BasicBlock(nn.Module):
                      nn.BatchNorm2d(self.expansion * planes)
                 )
 
-    def forward(self, x):
+    def forward(self, x: Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]):
+        if isinstance(x, tuple):
+            x, s = x
+        else:
+            s = None
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
         out += self.shortcut(x)
         out = F.relu(out)
-        return out
+        if s is None:
+            return out
+        else:
+            return out, s
 
 
 class EquivarLayer_affine_resnet32(nn.Module):
