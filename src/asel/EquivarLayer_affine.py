@@ -192,6 +192,25 @@ class BasicBlock(nn.Module):
             return out
         else:
             return out, s
+        
+
+class ScaleProjectionLayer(nn.Module):
+    def __init__(self, scales, beta:float=10):
+        super().__init__()
+        self.scales = torch.nn.Parameter(torch.Tensor(scales).view(1, -1, 1, 1, 1), requires_grad=False)
+        self.beta = beta
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() == 6:
+            x = x.view(x.shape[0], x.shape[1], 4, x.shape[4], x.shape[5])
+        b, s, _, h, w = x.shape
+        det = (x[:, :, 0, :, :] * x[:, :, 3, :, :] - x[:, :, 1, :, :] * x[:, :, 2, :, :]).abs()
+        det_onehot = torch.nn.functional.one_hot(torch.argmax(det, dim=1), s).float().permute(0, 3, 1, 2)
+        det_soft = torch.nn.functional.softmax(self.beta * det, dim=1)
+        det_weight = det_onehot + det_soft - det_soft.detach()
+        pool_x = torch.sum(det_weight.unsqueeze(2) * x * self.scales, dim=1)
+        result = pool_x.view(b, 2, 2, w, h)
+        return result
 
 
 class EquivarLayer_affine_resnet32(nn.Module):
