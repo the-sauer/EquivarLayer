@@ -211,6 +211,26 @@ class ScaleProjectionLayer(nn.Module):
         pool_x = torch.sum(det_weight.unsqueeze(2) * x * self.scales, dim=1)
         result = pool_x.view(b, 2, 2, w, h)
         return result
+    
+
+class LearnedSaliencyLayer(nn.Module):
+    def __init__(self, scales, beta:float=10):
+        super().__init__()
+        self.conv = torch.nn.Conv2d(4 * len(scales), len(scales), kernel_size=1)
+        self.scales = torch.nn.Parameter(torch.Tensor(scales).view(1, -1, 1, 1, 1), requires_grad=False)
+        self.beta = beta
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.dim() == 6:
+            x = x.view(x.shape[0], x.shape[1], 4, x.shape[4], x.shape[5])
+        b, s, c, h, w = x.shape
+        saliency_map = self.conv(x.reshape(b, s * 4, h, w)).reshape(b, s, h, w)
+        saliency_onehot = torch.nn.functional.one_hot(torch.argmax(saliency_map, dim=1), s).float().permute(0, 3, 1, 2)
+        saliency_soft = torch.nn.functional.softmax(self.beta * saliency_map, dim=1)
+        saliency_weight = saliency_onehot + saliency_soft - saliency_soft.detach()
+        pool_x = torch.sum(saliency_weight.unsqueeze(2) * x * self.scales, dim=1)
+        result = pool_x.view(b, 2, 2, w, h)
+        return result
 
 
 class EquivarLayer_affine_resnet32(nn.Module):
