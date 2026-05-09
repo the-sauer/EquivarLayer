@@ -110,15 +110,22 @@ class EqMatrixLayer(nn.Module):
         ux, uy, uxx, uyy, uxy = diff(x)
 
         relative_inv = uxx * uyy - uxy * uxy
-        if Su is None:
+        
+        if Su is None and self.scales is not None:
             Su = relative_inv.abs().view(x.shape[0], -1).max(dim=-1)[0]
             Su[Su==0] = 1
             Su = Su.view(x.shape[0], 1, 1, 1, 1) ** 0.5
 
-        eq_matrix11 = self.conv1(((uxx * uy - uxy * ux) / Su).view(b * s, -1, h, w)).view(b, s, -1, h, w)
-        eq_matrix12 = self.conv1(ux.view(b * s, -1, h, w)).view(b, s, -1, h, w)
-        eq_matrix21 = self.conv1(((uxy * uy - uyy * ux) / Su).view(b * s, -1, h, w)).view(b, s, -1, h, w)
-        eq_matrix22 = self.conv1(uy.view(b * s, -1, h, w)).view(b, s, -1, h, w)
+        if Su is None:
+            eq_matrix11 = self.conv1(((uxx * uy - uxy * ux)).view(b * s, -1, h, w)).view(b, s, -1, h, w)
+            eq_matrix12 = self.conv1(ux.view(b * s, -1, h, w)).view(b, s, -1, h, w)
+            eq_matrix21 = self.conv1(((uxy * uy - uyy * ux)).view(b * s, -1, h, w)).view(b, s, -1, h, w)
+            eq_matrix22 = self.conv1(uy.view(b * s, -1, h, w)).view(b, s, -1, h, w)
+        else:
+            eq_matrix11 = self.conv1(((uxx * uy - uxy * ux) / Su).view(b * s, -1, h, w)).view(b, s, -1, h, w)
+            eq_matrix12 = self.conv1(ux.view(b * s, -1, h, w)).view(b, s, -1, h, w)
+            eq_matrix21 = self.conv1(((uxy * uy - uyy * ux) / Su).view(b * s, -1, h, w)).view(b, s, -1, h, w)
+            eq_matrix22 = self.conv1(uy.view(b * s, -1, h, w)).view(b, s, -1, h, w)
 
         return torch.cat(
                 (eq_matrix11, eq_matrix12, eq_matrix21, eq_matrix22),
