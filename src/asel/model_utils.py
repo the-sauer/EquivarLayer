@@ -85,7 +85,7 @@ class Diff(nn.Module):
         u = u.expand(-1, s, -1, -1, -1)
         kH, kW = kernel.shape[-2], kernel.shape[-1]
         pad = (kW // 2, kW // 2, kH // 2, kH // 2)
-        u = F.pad(u.view(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
+        u = F.pad(u.reshape(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
         out = torch.stack([F.conv2d(u[:,i], kernel[i], bias=None, stride=1, groups=c) for i in range(s)], dim=1)
         # Reshape from (B, S*C, H, W) to (B, S, C, H, W)
         # _, _, _, h, w = out.shape
@@ -99,7 +99,7 @@ class Diff(nn.Module):
         u = u.expand(-1, s, -1, -1, -1)
         kH, kW = kernel.shape[-2], kernel.shape[-1]
         pad = (kW // 2, kW // 2, kH // 2, kH // 2)
-        u = F.pad(u.view(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
+        u = F.pad(u.reshape(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
         out = torch.stack([F.conv2d(u[:,i], kernel[i], bias=None, stride=1, groups=c) for i in range(s)], dim=1)
         # Reshape from (B, S*C, H, W) to (B, S, C, H, W)
         # _, _, _, h, w = out.shape
@@ -113,7 +113,7 @@ class Diff(nn.Module):
         u = u.expand(-1, s, -1, -1, -1)
         kH, kW = kernel.shape[-2], kernel.shape[-1]
         pad = (kW // 2, kW // 2, kH // 2, kH // 2)
-        u = F.pad(u.view(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
+        u = F.pad(u.reshape(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
         out = torch.stack([F.conv2d(u[:,i], kernel[i], bias=None, stride=1, groups=c) for i in range(s)], dim=1)
         # Reshape from (B, S*C, H, W) to (B, S, C, H, W)
         # _, _, _, h, w = out.shape
@@ -127,7 +127,7 @@ class Diff(nn.Module):
         u = u.expand(-1, s, -1, -1, -1)
         kH, kW = kernel.shape[-2], kernel.shape[-1]
         pad = (kW // 2, kW // 2, kH // 2, kH // 2)
-        u = F.pad(u.view(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
+        u = F.pad(u.reshape(b*s, c, h, w), pad, mode='replicate').view(b, s, c, h+pad[2]+pad[3], w+pad[0]+pad[1])
         out = torch.stack([F.conv2d(u[:,i], kernel[i], bias=None, stride=1, groups=c) for i in range(s)], dim=1)
         # Reshape from (B, S*C, H, W) to (B, S, C, H, W)
         # _, _, _, h, w = out.shape

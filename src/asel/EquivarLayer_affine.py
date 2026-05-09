@@ -106,7 +106,7 @@ class EqMatrixLayer(nn.Module):
 
         b, s, _, h, w = x.shape
 
-        diff = Diff().to(x.device)
+        diff = Diff(scales=self.scales).to(x.device)
         ux, uy, uxx, uyy, uxy = diff(x)
 
         relative_inv = uxx * uyy - uxy * uxy
