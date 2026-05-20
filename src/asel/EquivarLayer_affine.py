@@ -37,15 +37,15 @@ def compute_affine_invariants(u, scales=None):
 
 # EquivarLayer for the affine group
 class EquivarLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, hid_channels=None, type=["0", "0"], stride=1, scales=None):
+    def __init__(self, in_channels, out_channels, hid_channels=None, type=["0", "0"], stride=1, scales=None, conv_layer: type[torch.nn.Module]=torch.nn.Conv2d, kernel_size=1, up_stride=1):
         super(EquivarLayer, self).__init__()
         self.in_channels = in_channels
         self.scales = scales
         num_inv = 6 * in_channels - 3
         if hid_channels == None:
             hid_channels = max(in_channels, out_channels)
-        self.conv1 = torch.nn.Conv2d(num_inv, hid_channels, kernel_size=1)
-        self.conv2 = torch.nn.Conv2d(hid_channels, out_channels, kernel_size=1)
+        self.conv1 = conv_layer(num_inv, hid_channels, kernel_size=1)
+        self.conv2 = conv_layer(hid_channels, out_channels, kernel_size=kernel_size, stride=up_stride)
         self.stride = stride
         self.type = type
         if self.type[1] == "c":
